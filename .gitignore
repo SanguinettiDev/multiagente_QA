@@ -1,0 +1,15 @@
+# Segurança - NUNCA envie suas chaves
+.env
+
+# Lixo do Python
+__pycache__/
+*.pyc
+
+# Ambiente Virtual
+.venv/
+venv/
+env/
+
+# Logs e Banco de Dados locais
+*.log
+*.sqlite3
