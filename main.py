@@ -1,57 +1,72 @@
 import sys
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from crewai import Crew, Process
-from fastapi.middleware.cors import CORSMiddleware
 
-# Importa os módulos criados
+# Importamos as funções diretas
 from app.agents import backlog, arquitetura, documentacao, revisao
 
 app = FastAPI()
 
-# Configura CORS para aceitar seu Front-end
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 class ProjectRequest(BaseModel):
-    idea: str
+    text: str
+
+@app.get("/")
+def read_root():
+    return {"message": "API Pure-Python (Sem CrewAI) Online."}
 
 @app.post("/generate")
 def run_agents(request: ProjectRequest):
-    """Endpoint que roda a esteira de agentes"""
-    input_usuario = request.idea
-    
-    # 1. Instancia Agentes
-    agent_po = backlog.criar_agente_backlog()
-    agent_arq = arquitetura.criar_agente_arquitetura()
-    agent_doc = documentacao.criar_agente_docs()
-    agent_qa = revisao.criar_agente_revisao()
+    print(f"Recebendo pedido: {request.text}")
 
-    # 2. Cria Tarefas
-    task_po = backlog.tarefa_backlog(agent_po, input_usuario)
-    task_arq = arquitetura.tarefa_arquitetura(agent_arq, task_po)
-    task_doc = documentacao.tarefa_docs(agent_doc, task_arq)
-    task_qa = revisao.tarefa_revisao(agent_qa, input_usuario, [task_po, task_arq, task_doc])
+    try:
+        input_usuario = request.text
+        
+        # 1. Executa Backlog (PO)
+        resultado_backlog = backlog.executar_backlog(input_usuario)
+        
+        # 2. Executa Arquitetura (Passando o resultado do backlog)
+        resultado_arq = arquitetura.executar_arquitetura(resultado_backlog)
+        
+        # 3. Executa Documentação (Passando o resultado da arquitetura)
+        resultado_docs = documentacao.executar_docs(resultado_arq)
+        
+        # 4. Executa Revisão (Passando TUDO para o QA analisar)
+        resultado_qa = revisao.executar_revisao(
+            input_usuario, 
+            resultado_backlog, 
+            resultado_arq, 
+            resultado_docs
+        )
 
-    # 3. Monta a Equipe (Crew)
-    factory_crew = Crew(
-        agents=[agent_po, agent_arq, agent_doc, agent_qa],
-        tasks=[task_po, task_arq, task_doc, task_qa],
-        process=Process.sequential,
-        verbose=True
-    )
+        # 5. Monta o Relatório Final Manualmente
+        relatorio_completo = ""
+        relatorio_completo += "=== 1. BACKLOG & USER STORIES ===\n"
+        relatorio_completo += str(resultado_backlog) + "\n\n"
+        
+        relatorio_completo += "=== 2. ARQUITETURA TÉCNICA ===\n"
+        relatorio_completo += str(resultado_arq) + "\n\n"
+        
+        relatorio_completo += "=== 3. DOCUMENTAÇÃO ===\n"
+        relatorio_completo += str(resultado_docs) + "\n\n"
+        
+        relatorio_completo += "=== 4. REVISÃO DE QA ===\n"
+        relatorio_completo += str(resultado_qa) + "\n\n"
 
-    # 4. Executa
-    result = factory_crew.kickoff()
-    
-    return {"result": str(result)}
+        # Salva log local (opcional)
+        try:
+            nome_arquivo = f"projeto_clean_{input_usuario[:10].replace(' ', '_')}.md"
+            with open(nome_arquivo, "w", encoding="utf-8") as f:
+                f.write(relatorio_completo)
+        except:
+            pass
+
+        return {"result": relatorio_completo}
+
+    except Exception as e:
+        print(f"ERRO FATAL: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
-    # Roda o servidor
     uvicorn.run(app, host="0.0.0.0", port=8000)

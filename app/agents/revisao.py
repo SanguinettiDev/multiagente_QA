@@ -1,19 +1,19 @@
-from crewai import Agent, Task
-from app.provider import get_llm
+from app.provider import chamar_openai
 
-def criar_agente_revisao():
-    return Agent(
-        role='QA Lead (Revisão)',
-        goal='Criticar e validar se a arquitetura e o backlog atendem ao pedido original com qualidade.',
-        backstory="Você é chato e detalhista. Você procura furos na lógica, problemas de segurança ou requisitos faltantes.",
-        llm=get_llm(),
-        verbose=True
+def executar_revisao(ideia_original, backlog, arquitetura, docs):
+    system_prompt = (
+        "Você é um QA Lead (Revisor) extremamente crítico e detalhista.\n"
+        "Sua função é validar se o que foi produzido atende ao pedido original.\n"
+        "Procure falhas de lógica, segurança ou requisitos esquecidos."
     )
-
-def tarefa_revisao(agente, input_original, tarefas_anteriores):
-    return Task(
-        description=f"Revise todo o trabalho (Backlog, Arq, Docs) frente ao pedido original: '{input_original}'. Dê uma nota 0-10 e liste melhorias.",
-        expected_output="Relatório de Qualidade e Aprovação Final.",
-        agent=agente,
-        context=tarefas_anteriores
+    
+    user_prompt = (
+        f"PEDIDO ORIGINAL: {ideia_original}\n\n"
+        f"--- BACKLOG PRODUZIDO ---\n{backlog}\n\n"
+        f"--- ARQUITETURA ---\n{arquitetura}\n\n"
+        f"--- DOCUMENTAÇÃO ---\n{docs}\n\n"
+        f"TAREFA: Dê uma nota 0-10, critique o trabalho da equipe e sugira melhorias finais."
     )
+    
+    print("--- [QA] Revisando tudo... ---")
+    return chamar_openai(system_prompt, user_prompt)

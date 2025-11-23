@@ -1,18 +1,13 @@
-from crewai import Agent, Task
-from app.provider import get_llm
+from app.provider import chamar_openai
 
-def criar_agente_backlog():
-    return Agent(
-        role='Product Owner (Backlog)',
-        goal='Transformar uma ideia vaga em requisitos técnicos detalhados e User Stories.',
-        backstory="Você é um PO experiente. Você detalha funcionalidades, critérios de aceite e regras de negócio.",
-        llm=get_llm(),
-        verbose=True
+def executar_backlog(input_usuario):
+    system_prompt = (
+        "Você é um Product Owner (PO) experiente.\n"
+        "Sua função é transformar ideias vagas em requisitos técnicos detalhados.\n"
+        "Crie uma lista de Funcionalidades e User Stories com critérios de aceite."
     )
-
-def tarefa_backlog(agente, input_usuario):
-    return Task(
-        description=f"Analise a solicitação: '{input_usuario}'. Crie um Backlog detalhado com User Stories e Critérios de Aceite.",
-        expected_output="Texto formatado com Lista de Funcionalidades e User Stories.",
-        agent=agente
-    )
+    
+    user_prompt = f"Crie um Backlog detalhado para esta ideia: '{input_usuario}'"
+    
+    print("--- [PO] Gerando Backlog... ---")
+    return chamar_openai(system_prompt, user_prompt)

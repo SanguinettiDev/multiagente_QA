@@ -1,19 +1,16 @@
-from crewai import Agent, Task
-from app.provider import get_llm
+from app.provider import chamar_openai
 
-def criar_agente_arquitetura():
-    return Agent(
-        role='Arquiteto de Software',
-        goal='Definir a stack tecnológica, estrutura de pastas e padrões de projeto baseados no backlog.',
-        backstory="Você desenha soluções escaláveis. Você decide quais bibliotecas, banco de dados e padrões (MVC, Clean Arch) usar.",
-        llm=get_llm(),
-        verbose=True
+def executar_arquitetura(backlog_gerado):
+    system_prompt = (
+        "Você é um Arquiteto de Software Sênior.\n"
+        "Sua função é definir a stack tecnológica, estrutura de pastas e padrões (MVC, Clean Arch).\n"
+        "Você deve focar em escalabilidade e boas práticas."
     )
-
-def tarefa_arquitetura(agente, contexto_backlog):
-    return Task(
-        description="Com base no Backlog gerado, defina a Arquitetura Técnica, Stack (Frontend/Backend) e Estrutura de Pastas.",
-        expected_output="Documento de Arquitetura Técnica e Árvore de Arquivos.",
-        agent=agente,
-        context=[contexto_backlog]
+    
+    user_prompt = (
+        f"Com base neste Backlog, defina a Arquitetura Técnica, Banco de Dados e Estrutura de arquivos:\n\n"
+        f"{backlog_gerado}"
     )
+    
+    print("--- [ARQUITETO] Desenhando Solução... ---")
+    return chamar_openai(system_prompt, user_prompt)

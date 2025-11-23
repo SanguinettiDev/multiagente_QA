@@ -1,19 +1,16 @@
-from crewai import Agent, Task
-from app.provider import get_llm
+from app.provider import chamar_openai
 
-def criar_agente_docs():
-    return Agent(
-        role='Tech Writer',
-        goal='Escrever a documentação técnica e o README.md do projeto.',
-        backstory="Você garante que o projeto seja compreensível. Você escreve READMEs perfeitos e guias de instalação.",
-        llm=get_llm(),
-        verbose=True
+def executar_docs(arquitetura_gerada):
+    system_prompt = (
+        "Você é um Tech Writer especialista.\n"
+        "Sua função é escrever a documentação técnica e um README.md perfeito.\n"
+        "Inclua como instalar, rodar e a estrutura do projeto."
     )
-
-def tarefa_docs(agente, contexto_arquitetura):
-    return Task(
-        description="Escreva um README.md completo e documentação da API baseada na arquitetura definida.",
-        expected_output="Conteúdo Markdown do README.md.",
-        agent=agente,
-        context=[contexto_arquitetura]
+    
+    user_prompt = (
+        f"Escreva o conteúdo de um arquivo README.md baseado nesta arquitetura:\n\n"
+        f"{arquitetura_gerada}"
     )
+    
+    print("--- [TECH WRITER] Escrevendo Docs... ---")
+    return chamar_openai(system_prompt, user_prompt)

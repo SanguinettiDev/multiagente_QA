@@ -1,18 +1,27 @@
 import os
 from dotenv import load_dotenv
-from crewai import LLM
+from openai import OpenAI
 
-# Carrega o .env explicitamente
 load_dotenv()
 
-def get_llm():
-    """Retorna a instância do LLM configurada."""
-    api_key = os.getenv("OPENAI_API_KEY")
-    # Se não tiver 'model' no .env, usa gpt-4-turbo por padrão
-    model = os.getenv("model", "gpt-4-turbo")
-    
-    if not api_key:
-        # Isso vai te ajudar a descobrir se o .env está sendo lido errado
-        raise ValueError("ERRO CRÍTICO: A variável OPENAI_API_KEY não foi encontrada. Verifique seu arquivo .env")
+# Instancia o cliente uma vez só
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+modelo = os.getenv("model", "gpt-4o-mini")
 
-    return LLM(model=model, api_key=api_key)
+def chamar_openai(system_prompt: str, user_prompt: str):
+    """
+    Função auxiliar que substitui o 'Agent' do CrewAI.
+    Envia o System Prompt (quem é o agente) e o User Prompt (a tarefa).
+    """
+    try:
+        response = client.chat.completions.create(
+            model=modelo,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.7
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"Erro na chamada OpenAI: {str(e)}"
