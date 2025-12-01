@@ -13,3 +13,5 @@ env/
 # Logs e Banco de Dados locais
 *.log
 *.sqlite3
+
+*projeto_clean_Crie_um_ap.md
