@@ -1,9 +1,8 @@
 import sys
 import os
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
-
-# Importamos as funções diretas
 from app.agents import backlog, arquitetura, documentacao, revisao
 
 app = FastAPI()
@@ -11,61 +10,59 @@ app = FastAPI()
 class ProjectRequest(BaseModel):
     text: str
 
-@app.get("/")
+@app.get("/", response_class=PlainTextResponse)
 def read_root():
-    return {"message": "API Pure-Python (Sem CrewAI) Online."}
+    return "QA SQUAD AUTOMATION ONLINE. Envie o código/requisito para /generate"
 
-@app.post("/generate")
+@app.post("/generate", response_class=PlainTextResponse)
 def run_agents(request: ProjectRequest):
-    print(f"Recebendo pedido: {request.text}")
+    print(f"Recebendo demanda de QA: {request.text}")
 
     try:
         input_usuario = request.text
         
-        # 1. Executa Backlog (PO)
-        resultado_backlog = backlog.executar_backlog(input_usuario)
+        # 1. Estratégia
+        resultado_plano = backlog.executar_backlog(input_usuario)
         
-        # 2. Executa Arquitetura (Passando o resultado do backlog)
-        resultado_arq = arquitetura.executar_arquitetura(resultado_backlog)
+        # 2. Casos de Teste
+        resultado_casos = arquitetura.executar_arquitetura(resultado_plano)
         
-        # 3. Executa Documentação (Passando o resultado da arquitetura)
-        resultado_docs = documentacao.executar_docs(resultado_arq)
+        # 3. Script de Automação
+        resultado_script = documentacao.executar_docs(resultado_casos)
         
-        # 4. Executa Revisão (Passando TUDO para o QA analisar)
-        resultado_qa = revisao.executar_revisao(
+        # 4. Análise de Segurança
+        resultado_security = revisao.executar_revisao(
             input_usuario, 
-            resultado_backlog, 
-            resultado_arq, 
-            resultado_docs
+            resultado_plano, 
+            resultado_script
         )
 
-        # 5. Monta o Relatório Final Manualmente
-        relatorio_completo = ""
-        relatorio_completo += "=== 1. BACKLOG & USER STORIES ===\n"
-        relatorio_completo += str(resultado_backlog) + "\n\n"
-        
-        relatorio_completo += "=== 2. ARQUITETURA TÉCNICA ===\n"
-        relatorio_completo += str(resultado_arq) + "\n\n"
-        
-        relatorio_completo += "=== 3. DOCUMENTAÇÃO ===\n"
-        relatorio_completo += str(resultado_docs) + "\n\n"
-        
-        relatorio_completo += "=== 4. REVISÃO DE QA ===\n"
-        relatorio_completo += str(resultado_qa) + "\n\n"
+        # Monta o Relatório
+        relatorio = ""
+        relatorio += "========================================\n"
+        relatorio += "       RELATÓRIO DE QA & AUTOMAÇÃO      \n"
+        relatorio += "========================================\n\n"
 
-        # Salva log local (opcional)
-        try:
-            nome_arquivo = f"projeto_clean_{input_usuario[:10].replace(' ', '_')}.md"
-            with open(nome_arquivo, "w", encoding="utf-8") as f:
-                f.write(relatorio_completo)
-        except:
-            pass
+        relatorio += "### 1. ESTRATÉGIA DE TESTES ###\n"
+        relatorio += str(resultado_plano) + "\n\n"
+        relatorio += "----------------------------------------\n\n"
 
-        return {"result": relatorio_completo}
+        relatorio += "### 2. CASOS DE TESTE (GHERKIN) ###\n"
+        relatorio += str(resultado_casos) + "\n\n"
+        relatorio += "----------------------------------------\n\n"
+
+        relatorio += "### 3. SCRIPT DE AUTOMAÇÃO (PYTHON) ###\n"
+        relatorio += str(resultado_script) + "\n\n"
+        relatorio += "----------------------------------------\n\n"
+
+        relatorio += "### 4. ANÁLISE DE SEGURANÇA & RISCOS ###\n"
+        relatorio += str(resultado_security) + "\n\n"
+
+        return relatorio
 
     except Exception as e:
-        print(f"ERRO FATAL: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"ERRO: {e}")
+        return f"ERRO NO SERVIDOR: {str(e)}"
 
 if __name__ == "__main__":
     import uvicorn
